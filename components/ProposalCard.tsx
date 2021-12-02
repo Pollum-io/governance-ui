@@ -40,7 +40,7 @@ const ProposalCard = ({ proposalPk, proposal }: ProposalCardProps) => {
     <div>
       <Link
         href={fmtUrlWithCluster(
-          `/dao/${symbol}/proposal/${proposalPk.toBase58()}`
+          `/realms/${symbol}/proposal/${proposalPk.toBase58()}`
         )}
       >
         <a>

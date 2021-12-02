@@ -249,7 +249,7 @@ const SendTokens = () => {
           false
         )
         const url = fmtUrlWithCluster(
-          `/dao/${symbol}/proposal/${proposalAddress}`
+          `/realms/${symbol}/proposal/${proposalAddress}`
         )
         router.push(url)
       } catch (ex) {
