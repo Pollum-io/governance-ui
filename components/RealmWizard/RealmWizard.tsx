@@ -112,99 +112,13 @@ const RealmWizard: React.FC = () => {
     )
 
     if (results) {
-      throw new Error(
-        'TODO: Remove everything after this line because realm is already created at this point and redirect to the realm page  dao/${realmPk}'
-      )
+      return results
     }
 
-    const generatedArtifacts = await generateGovernanceArtifacts(
-      connection.current,
-      wallet,
-      form.name,
-      form.teamWallets
-    )
-
-    let artifacts: RealmArtifacts = {
-      name: generatedArtifacts.realmName,
-      programVersion: ProgramVersion.V1,
-      governanceProgramId: DEFAULT_GOVERNANCE_PROGRAM_ID,
-      communityMintId: generatedArtifacts.communityMintAddress.toBase58(),
-      councilMintId: generatedArtifacts.councilMintAddress.toBase58(),
-      minCommunityTokensToCreateGovernance: new BN(1000000),
-    }
-
-    if (artifacts?.councilMintId) {
-      setLoaderMessage(LoaderMessage.MINTING_COUNCIL_TOKENS)
-      const councilMintInfo = await handleCouncilMint(artifacts.councilMintId)
-      artifacts = {
-        ...artifacts,
-        ...councilMintInfo,
-      }
-    }
-    if (artifacts?.communityMintId) {
-      setLoaderMessage(LoaderMessage.MINTING_COMMUNITY_TOKENS)
-      const communityMintInfo = await handleCommunityMint(
-        artifacts.communityMintId
-      )
-      artifacts = {
-        ...artifacts,
-        ...communityMintInfo,
-      }
-    }
-    setForm(artifacts)
-    setHasGeneratedArtifacts(true)
-    return artifacts
-  }
-
-  const handleCommunityMint = async (mintId: string) => {
-    try {
-      const mintPublicKey = new PublicKey(mintId)
-      const mint = await tryGetMint(connection.current, mintPublicKey)
-      if (mint) {
-        let mintInfo
-        const supply = mint.account.supply
-        if (supply.gt(new BN(0))) {
-          mintInfo = {
-            minCommunityTokensToCreateGovernance: BN.max(
-              new BN(1),
-              // divide by 100 for a percentage
-              new BN(
-                getMintDecimalAmount(mint.account, supply)
-                  .dividedBy(100)
-                  .toString()
-              )
-            ),
-            communityMint: mint,
-          }
-          handleSetForm({ ...mintInfo })
-        } else {
-          mintInfo = {
-            communityMint: mint,
-          }
-          handleSetForm({ ...mintInfo })
-        }
-        return mintInfo
-      }
-    } catch (e) {
-      console.log('failed to set community mint', e)
-    }
-    return undefined
-  }
-
-  const handleCouncilMint = async (mintId: string) => {
-    try {
-      const mintPublicKey = new PublicKey(mintId)
-      const mint = await tryGetMint(connection.current, mintPublicKey)
-      if (mint) {
-        handleSetForm({
-          councilMint: mint,
-        })
-        return { councilMint: mint }
-      }
-    } catch (e) {
-      console.log('failed to set council mint', e)
-    }
-    return undefined
+    notify({
+      type: 'error',
+      message: 'Something bad happened during this request.',
+    })
   }
 
   /**
@@ -240,61 +154,11 @@ const RealmWizard: React.FC = () => {
   }
 
   const handleCreateRealm = async () => {
-    let generatedForm = { ...form }
     setIsLoading(true)
-    if (!hasGeneratedArtifacts) {
-      try {
-        const artifacts = await generateProgramArtifacts()
-        generatedForm = {
-          ...generatedForm,
-          ...artifacts,
-        }
-        setForm(generatedForm)
-      } catch (error) {
-        console.error(error)
-        setIsLoading(false)
-        notify({
-          type: 'error',
-          message: error.message,
-        })
-        return
-      }
-    }
-
-    const { isValid }: formValidation = await isFormValid(
-      CreateFormSchema,
-      generatedForm
-    )
-
-    if (isValid && ctl && wallet?.publicKey) {
-      setLoaderMessage(LoaderMessage.DEPLOYING_REALM)
-      try {
-        const calldata = ctl.prepareData(wallet, connection, generatedForm)
-
-        const realmAddress = await registerRealm(
-          calldata.rpc,
-          calldata.programId,
-          calldata.programVersion,
-          calldata.name,
-          calldata.communityMintId,
-          calldata.councilMintId,
-          calldata.voteWeight,
-          calldata.minCommunityTokens
-        )
-        setLoaderMessage(LoaderMessage.COMPLETING_REALM)
-        setRealmAddress(realmAddress.toBase58())
-        setLoaderMessage(LoaderMessage.FINISHED)
-        handleStepSelection(StepDirection.NEXT)
-        setHasGeneratedArtifacts(false)
-      } catch (error) {
-        notify({
-          type: 'error',
-          message: error.message,
-        })
-        setLoaderMessage(LoaderMessage.ERROR)
-      } finally {
-        setIsLoading(false)
-      }
+    const realm = await generateProgramArtifacts()
+    setIsLoading(false)
+    if (realm) {
+      window.location.pathname = `/dao/${realm.realmPk.toBase58()}`
     }
   }
 

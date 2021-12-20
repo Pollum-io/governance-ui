@@ -16,31 +16,24 @@ const StepOne: React.FC<RealmWizardStepComponentProps> = ({
   setForm,
   form,
 }) => {
-  const handleInsertTeamWallet = (wallet: string) => {
+  const handleInsertTeamWallet = (wallets: string[]) => {
     let teamWallets: string[] = []
     if (form?.teamWallets) {
       teamWallets = form.teamWallets
     }
-    if (!teamWallets.find((addr) => addr === wallet)) {
-      teamWallets.push(wallet)
-      setForm({ teamWallets })
-    } else {
-      notify({
-        type: 'error',
-        message: 'This wallet already exists.',
-      })
-    }
+    wallets.forEach((wallet) => {
+      if (!teamWallets.find((addr) => addr === wallet)) {
+        teamWallets.push(wallet)
+        setForm({ teamWallets })
+      }
+    })
   }
 
   const handleRemoveTeamWallet = (index: number) => {
     if (form?.teamWallets && form.teamWallets[index]) {
       const teamWallets = form.teamWallets
-      const removedWallet = teamWallets.splice(index, 1)
+      teamWallets.splice(index, 1)
       setForm({ teamWallets })
-      notify({
-        type: 'success',
-        message: `Wallet ${removedWallet} removed.`,
-      })
     }
   }
 

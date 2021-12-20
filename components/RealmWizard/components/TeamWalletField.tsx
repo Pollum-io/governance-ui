@@ -6,38 +6,13 @@ import { PlusCircleIcon } from '@heroicons/react/outline'
 import useWalletStore from 'stores/useWalletStore'
 
 const TeamWalletField: React.FC<{
-  onInsert: (wallet: string) => void
+  onInsert: (wallets: string[]) => void
   onRemove: (index: number) => void
   wallets?: string[]
 }> = ({ wallets = [], onInsert, onRemove }) => {
   const [showAddWalletModal, setShowWalletModal] = useState(false)
   const { current: wallet } = useWalletStore((s) => s)
   const [hasCurrentWallet, setHasCurrentWallet] = useState(false)
-
-  const includeCurrentWalletButton = (
-    <label>
-      <input
-        className="mr-1 mt-4"
-        type="checkbox"
-        checked={hasCurrentWallet}
-        onChange={(e) => {
-          if (wallet?.publicKey) {
-            if (e.target.checked) {
-              setHasCurrentWallet(true)
-              onInsert(wallet?.publicKey.toBase58())
-            } else {
-              const currentWalletIndex = wallets.findIndex(
-                (addr) => addr === wallet?.publicKey?.toBase58()
-              )
-              setHasCurrentWallet(false)
-              onRemove(currentWalletIndex)
-            }
-          }
-        }}
-      />
-      <small> Include current wallet</small>
-    </label>
-  )
 
   const newWalletButton = (
     <div
@@ -52,9 +27,10 @@ const TeamWalletField: React.FC<{
 
   useEffect(() => {
     if (
-      wallet &&
-      wallets.find((addr) => addr === wallet.publicKey?.toBase58())
+      wallet?.publicKey &&
+      !wallets.find((addr) => addr === wallet.publicKey?.toBase58())
     ) {
+      onInsert([wallet.publicKey?.toBase58()])
       setHasCurrentWallet(true)
     }
   }, [wallets.length, wallet?.publicKey])
@@ -62,7 +38,6 @@ const TeamWalletField: React.FC<{
   return (
     <div className="team-wallets-wrapper">
       <StyledLabel>Team wallets</StyledLabel>
-      {includeCurrentWalletButton}
       {wallets.map((wallet, index) => (
         <div className="flex flex-col relative w-full" key={index}>
           <StyledLabel>Member {index + 1}:</StyledLabel>

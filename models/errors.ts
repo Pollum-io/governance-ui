@@ -10,6 +10,7 @@ export class SendTransactionError extends Error {
     this.txId = txId
   }
 }
+
 export const GovernanceError: Record<number, string> = [
   'Invalid instruction passed to program', // InvalidInstruction
   'Realm with the given name and governing mints already exists', // RealmAlreadyExists
