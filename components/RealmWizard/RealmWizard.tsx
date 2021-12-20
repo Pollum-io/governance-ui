@@ -35,7 +35,7 @@ enum LoaderMessage {
   MINTING_COMMUNITY_TOKENS = 'Minting the community tokens..',
   DEPLOYING_REALM = 'Deploying the Realm..',
   COMPLETING_REALM = 'Finishing the Realm buildings..',
-  FINISHED = 'Realm successfully created.',
+  FINISHED = "Realm successfully created. Redirecting to the realm's page",
   ERROR = 'We found an error while creating your Realm :/',
 }
 
@@ -158,16 +158,16 @@ const RealmWizard: React.FC = () => {
       const realm = await generateProgramArtifacts()
       setIsLoading(false)
       if (realm) {
+        setLoaderMessage(LoaderMessage.FINISHED)
         router.push(fmtUrlWithCluster(`/dao/${realm.realmPk.toBase58()}`))
       }
     } catch (error) {
       const err = error as Error
+      setIsLoading(false)
       notify({
         type: 'error',
         message: err.message,
       })
-    } finally {
-      setIsLoading(false)
     }
   }
 
