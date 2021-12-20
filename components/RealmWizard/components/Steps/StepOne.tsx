@@ -3,6 +3,7 @@ import { RealmWizardStepComponentProps } from '../../interfaces/Realm'
 import TeamWalletField from '../TeamWalletField'
 import { notify } from '@utils/notifications'
 import Input from '@components/inputs/Input'
+import { StyledLabel } from '@components/inputs/styles'
 
 /**
  * This is the Step One for the Realm Wizard.
@@ -50,6 +51,21 @@ const StepOne: React.FC<RealmWizardStepComponentProps> = ({
             setForm({
               name: $e.target.value,
             })
+          }}
+        />
+      </div>
+      <div className="pb-4">
+        <StyledLabel>Vote Threshold (%)</StyledLabel>
+        <Input
+          required
+          type="number"
+          value={form.yesThreshold}
+          placeholder="Vote threshold"
+          onChange={($e) => {
+            if (+$e.target.value > 0 && +$e.target.value <= 100)
+              setForm({
+                yesThreshold: $e.target.value,
+              })
           }}
         />
       </div>

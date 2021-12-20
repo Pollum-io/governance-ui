@@ -52,14 +52,16 @@ const RealmWizard: React.FC = () => {
    */
   const [ctl, setController] = useState<RealmWizardController>()
 
-  const [form, setForm] = useState<RealmArtifacts>({})
+  const [form, setForm] = useState<RealmArtifacts>({
+    yesThreshold: 60,
+  })
   const [isLoading, setIsLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState<RealmWizardStep>(
     RealmWizardStep.SELECT_MODE
   )
   const [realmAddress, setRealmAddress] = useState('')
   const [loaderMessage, setLoaderMessage] = useState<LoaderMessage>()
-  const [hasGeneratedArtifacts, setHasGeneratedArtifacts] = useState(false)
+
   /**
    * Handles and set the form data
    * @param data the form data
@@ -155,10 +157,20 @@ const RealmWizard: React.FC = () => {
 
   const handleCreateRealm = async () => {
     setIsLoading(true)
-    const realm = await generateProgramArtifacts()
-    setIsLoading(false)
-    if (realm) {
-      window.location.pathname = `/dao/${realm.realmPk.toBase58()}`
+    try {
+      const realm = await generateProgramArtifacts()
+      setIsLoading(false)
+      if (realm) {
+        window.location.pathname = `/dao/${realm.realmPk.toBase58()}`
+      }
+    } catch (error) {
+      const err = error as Error
+      notify({
+        type: 'error',
+        message: err.message,
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -207,7 +219,7 @@ const RealmWizard: React.FC = () => {
               if (ctl.isLastStep()) handleCreateRealm()
               else handleStepSelection(StepDirection.NEXT)
             }}
-            disabled={!form.teamWallets?.length}
+            disabled={!form.teamWallets?.length || !form.name}
           >
             {ctl.isLastStep() ? 'Create' : 'Next'}
           </Button>

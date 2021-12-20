@@ -17,6 +17,7 @@ export interface RealmArtifacts {
   communityMintMaxVoteWeightSource?: number
   minCommunityTokensToCreateGovernance?: BN
   teamWallets?: string[]
+  yesThreshold?: number
 }
 
 /**

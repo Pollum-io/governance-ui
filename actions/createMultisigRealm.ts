@@ -92,9 +92,8 @@ export const createMultisigRealm = async (
       teamWalletPk,
       walletPk
     )
-
     // Mint 1 council token to each team member
-    withMintTo(mintInstructions, councilMintPk, ataPk, walletPk, 1)
+    await withMintTo(mintInstructions, councilMintPk, ataPk, walletPk, 1)
 
     if (teamWalletPk.equals(walletPk)) {
       walletAtaPk = ataPk
