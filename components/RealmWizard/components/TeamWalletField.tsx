@@ -4,6 +4,7 @@ import AddWalletModal from './AddWalletModal'
 import { TrashIcon } from '@heroicons/react/solid'
 import { PlusCircleIcon } from '@heroicons/react/outline'
 import useWalletStore from 'stores/useWalletStore'
+import { notify } from '@utils/notifications'
 
 const TeamWalletField: React.FC<{
   onInsert: (wallets: string[]) => void
@@ -12,7 +13,6 @@ const TeamWalletField: React.FC<{
 }> = ({ wallets = [], onInsert, onRemove }) => {
   const [showAddWalletModal, setShowWalletModal] = useState(false)
   const { current: wallet } = useWalletStore((s) => s)
-  const [hasCurrentWallet, setHasCurrentWallet] = useState(false)
 
   const newWalletButton = (
     <div
@@ -25,13 +25,21 @@ const TeamWalletField: React.FC<{
     </div>
   )
 
+  const handleRemoveWallet = (index: number) => {
+    if (wallets[index] === wallet?.publicKey?.toBase58())
+      notify({
+        type: 'info',
+        message: 'Current wallet is required.',
+      })
+    else onRemove(index)
+  }
+
   useEffect(() => {
     if (
       wallet?.publicKey &&
       !wallets.find((addr) => addr === wallet.publicKey?.toBase58())
     ) {
       onInsert([wallet.publicKey?.toBase58()])
-      setHasCurrentWallet(true)
     }
   }, [wallets.length, wallet?.publicKey])
 
@@ -46,7 +54,7 @@ const TeamWalletField: React.FC<{
             <TrashIcon
               className="mt-3 ml-3 h-5 text-red pointer"
               onClick={() => {
-                onRemove(index)
+                handleRemoveWallet(index)
               }}
             />
           </div>

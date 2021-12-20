@@ -55,7 +55,7 @@ const AddWalletModal: React.FC<{
           {!!hasErrors && (
             <p className="text-red w-full ml-3">
               {hasErrors.map((error, index) => (
-                <div className="mb-2">
+                <div className="mb-2" key={index}>
                   {error}
                   <br />
                 </div>

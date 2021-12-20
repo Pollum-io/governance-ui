@@ -1,7 +1,6 @@
 import React from 'react'
 import { RealmWizardStepComponentProps } from '../../interfaces/Realm'
 import TeamWalletField from '../TeamWalletField'
-import { notify } from '@utils/notifications'
 import Input from '@components/inputs/Input'
 import { StyledLabel } from '@components/inputs/styles'
 

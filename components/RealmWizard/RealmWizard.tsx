@@ -57,7 +57,7 @@ const RealmWizard: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<RealmWizardStep>(
     RealmWizardStep.SELECT_MODE
   )
-  const [realmAddress, setRealmAddress] = useState('')
+  const [realmAddress] = useState('')
   const [loaderMessage, setLoaderMessage] = useState<LoaderMessage>()
 
   /**
