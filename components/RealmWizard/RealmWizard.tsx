@@ -96,15 +96,15 @@ const RealmWizard: React.FC = () => {
     setLoaderMessage(LoaderMessage.CREATING_ARTIFACTS)
     setIsLoading(true)
 
-    let programId = DEFAULT_GOVERNANCE_PROGRAM_ID
+    const programId =
+      process.env.DEFAULT_GOVERNANCE_PROGRAM_ID ?? DEFAULT_GOVERNANCE_PROGRAM_ID
 
     // temp. set to other instance to prevent spamming the default one
     // TODO: make it possible to set the default one via environment variable
-    programId = '4T4jPyMxM4fMn71pJQpU3iuQZrf5FnE2MmP71T7PGosm'
 
     const results = await createMultisigRealm(
       connection.current,
-      new PublicKey(programId),
+      new PublicKey('4T4jPyMxM4fMn71pJQpU3iuQZrf5FnE2MmP71T7PGosm'),
       ProgramVersion.V1,
       form.name,
       60,
@@ -160,7 +160,7 @@ const RealmWizard: React.FC = () => {
       const realm = await generateProgramArtifacts()
       setIsLoading(false)
       if (realm) {
-        window.location.pathname = `/dao/${realm.realmPk.toBase58()}`
+        router.push(fmtUrlWithCluster(`/dao/${realm.realmPk.toBase58()}`))
       }
     } catch (error) {
       const err = error as Error

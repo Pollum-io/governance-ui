@@ -30,6 +30,7 @@ import {
   SequenceType,
   WalletSigner,
 } from '@utils/governance/oyster/common'
+import { chunks } from '@utils/helpers'
 
 /// Creates multisig realm with community mint with 0 supply
 /// and council mint used as multisig token
@@ -47,8 +48,10 @@ export const createMultisigRealm = async (
   const walletPk = getWalletPublicKey(wallet)
 
   const mintInstructions: TransactionInstruction[] = []
-  const mintSigners: Keypair[] = []
+  const councilMintInstructions: TransactionInstruction[] = []
 
+  const mintSigners: Keypair[] = []
+  const councilMintSigners: Keypair[] = []
   // Default to 100% supply
   const communityMintMaxVoteWeightSource =
     MintMaxVoteWeightSource.FULL_SUPPLY_FRACTION
@@ -73,8 +76,8 @@ export const createMultisigRealm = async (
   // Create council mint
   const councilMintPk = await withCreateMint(
     connection,
-    mintInstructions,
-    mintSigners,
+    councilMintInstructions,
+    councilMintSigners,
     walletPk,
     null,
     0,
@@ -87,13 +90,13 @@ export const createMultisigRealm = async (
   // TODO: check the max allowable tx size and chunk the instructions accordingly
   for (const teamWalletPk of councilWalletPks) {
     const ataPk = await withCreateAssociatedTokenAccount(
-      mintInstructions,
+      councilMintInstructions,
       councilMintPk,
       teamWalletPk,
       walletPk
     )
     // Mint 1 council token to each team member
-    await withMintTo(mintInstructions, councilMintPk, ataPk, walletPk, 1)
+    await withMintTo(councilMintInstructions, councilMintPk, ataPk, walletPk, 1)
 
     if (teamWalletPk.equals(walletPk)) {
       walletAtaPk = ataPk
@@ -197,11 +200,25 @@ export const createMultisigRealm = async (
   )
 
   try {
+    console.log({
+      councilMintInstructions,
+      councilMintSigners,
+      mintInstructions,
+      realmInstructions,
+      mintSigners,
+      realmSigners,
+    })
+
+    const conucilMintChunks = chunks(councilMintInstructions, 10)
+    const councilMintSignersChunks = Array(councilMintInstructions.length).fill(
+      councilMintSigners
+    )
+
     const tx = await sendTransactions(
       connection,
       wallet,
-      [mintInstructions, realmInstructions],
-      [mintSigners, realmSigners],
+      [mintInstructions, ...conucilMintChunks, realmInstructions],
+      [mintSigners, ...councilMintSignersChunks, realmSigners],
       SequenceType.Sequential
     )
 
