@@ -1,12 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { MintMaxVoteWeightSource } from '@models/accounts'
-import { RpcContext } from '@models/core/api'
-import { ProgramVersion } from '@models/registry/constants'
-import { BN } from '@project-serum/anchor'
-import { PublicKey } from '@solana/web3.js'
-import { ConnectionContext } from '@utils/connection'
 import {
-  RealmArtifacts,
   RealmWizardMode,
   RealmWizardStep,
   StepDirection,
@@ -15,7 +8,11 @@ import {
 /**
  * This class provides methods to control the Realm Creator Wizard.
  *
+ * @method mountSteps
+ * @method isLastStep
+ * @method isFirstStep
  * @method getNextStep
+ * @method getCurrentStep
  *
  * @author [Pollum](https://pollum.io)
  * @since v0.1.0
@@ -92,64 +89,12 @@ class RealmWizardController {
       this.currentStep === RealmWizardStep.REALM_CREATED
     )
   }
+
   /**
    * Return the current step
    */
   getCurrentStep(): RealmWizardStep {
     return this.currentStep
-  }
-
-  /**
-   * Prepares the necessary data to request the realm creation
-   */
-  prepareData(
-    wallet: any,
-    conn: ConnectionContext,
-    artifacts: RealmArtifacts
-  ): {
-    rpc: RpcContext
-    name: string
-    communityMintId: PublicKey
-    councilMintId?: PublicKey
-    voteWeight: MintMaxVoteWeightSource
-    minCommunityTokens: BN
-    programId: PublicKey
-    programVersion: ProgramVersion
-  } {
-    if (artifacts.governanceProgramId) {
-      const rpc = new RpcContext(
-        new PublicKey(artifacts.governanceProgramId),
-        artifacts.programVersion,
-        wallet,
-        conn.current,
-        conn.endpoint
-      )
-      try {
-        if (
-          artifacts.name &&
-          artifacts.communityMintId &&
-          artifacts.minCommunityTokensToCreateGovernance
-        ) {
-          return {
-            rpc,
-            name: artifacts.name,
-            communityMintId: new PublicKey(artifacts.communityMintId),
-            councilMintId: artifacts.councilMintId
-              ? new PublicKey(artifacts.councilMintId)
-              : undefined,
-            voteWeight: MintMaxVoteWeightSource.FULL_SUPPLY_FRACTION,
-            minCommunityTokens: artifacts.minCommunityTokensToCreateGovernance,
-            programId: new PublicKey(artifacts.governanceProgramId),
-            programVersion: artifacts.programVersion!,
-          }
-        } else {
-          throw new Error('Invalid realm data.')
-        }
-      } catch (error) {
-        return error.message
-      }
-    }
-    throw new Error('Invalid Governance Program ID.')
   }
 }
 export default RealmWizardController

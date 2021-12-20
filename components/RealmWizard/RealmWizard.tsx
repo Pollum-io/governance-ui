@@ -27,7 +27,6 @@ import { ProgramVersion } from '@models/registry/constants'
 import { createMultisigRealm } from 'actions/createMultisigRealm'
 import { ArrowLeftIcon } from '@heroicons/react/solid'
 import useQueryContext from '@hooks/useQueryContext'
-import Link from 'next/link'
 import router from 'next/router'
 
 enum LoaderMessage {
@@ -99,22 +98,21 @@ const RealmWizard: React.FC = () => {
     const programId =
       process.env.DEFAULT_GOVERNANCE_PROGRAM_ID ?? DEFAULT_GOVERNANCE_PROGRAM_ID
 
-    // temp. set to other instance to prevent spamming the default one
-    // TODO: make it possible to set the default one via environment variable
+    console.log({ programId })
 
-    const results = await createMultisigRealm(
-      connection.current,
-      new PublicKey('4T4jPyMxM4fMn71pJQpU3iuQZrf5FnE2MmP71T7PGosm'),
-      ProgramVersion.V1,
-      form.name,
-      60,
-      form.teamWallets.map((w) => new PublicKey(w)),
-      wallet
-    )
+    // const results = await createMultisigRealm(
+    //   connection.current,
+    //   new PublicKey(programId),
+    //   ProgramVersion.V1,
+    //   form.name,
+    //   60,
+    //   form.teamWallets.map((w) => new PublicKey(w)),
+    //   wallet
+    // )
 
-    if (results) {
-      return results
-    }
+    // if (results) {
+    //   return results
+    // }
 
     notify({
       type: 'error',

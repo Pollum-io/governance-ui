@@ -47,10 +47,10 @@ export const createMultisigRealm = async (
 ) => {
   const walletPk = getWalletPublicKey(wallet)
 
-  const mintInstructions: TransactionInstruction[] = []
+  const communityMintInstructions: TransactionInstruction[] = []
   const councilMintInstructions: TransactionInstruction[] = []
 
-  const mintSigners: Keypair[] = []
+  const communityMintSigners: Keypair[] = []
   const councilMintSigners: Keypair[] = []
   // Default to 100% supply
   const communityMintMaxVoteWeightSource =
@@ -65,8 +65,8 @@ export const createMultisigRealm = async (
   // Create community mint
   const communityMintPk = await withCreateMint(
     connection,
-    mintInstructions,
-    mintSigners,
+    communityMintInstructions,
+    communityMintSigners,
     walletPk,
     null,
     communityMintDecimals,
@@ -200,25 +200,15 @@ export const createMultisigRealm = async (
   )
 
   try {
-    console.log({
-      councilMintInstructions,
-      councilMintSigners,
-      mintInstructions,
-      realmInstructions,
-      mintSigners,
-      realmSigners,
-    })
-
-    const conucilMintChunks = chunks(councilMintInstructions, 10)
+    const councilMintChunks = chunks(councilMintInstructions, 10)
     const councilMintSignersChunks = Array(councilMintInstructions.length).fill(
       councilMintSigners
     )
-
     const tx = await sendTransactions(
       connection,
       wallet,
-      [mintInstructions, ...conucilMintChunks, realmInstructions],
-      [mintSigners, ...councilMintSignersChunks, realmSigners],
+      [communityMintInstructions, ...councilMintChunks, realmInstructions],
+      [communityMintSigners, ...councilMintSignersChunks, realmSigners],
       SequenceType.Sequential
     )
 
