@@ -100,19 +100,19 @@ const RealmWizard: React.FC = () => {
 
     console.log({ programId })
 
-    // const results = await createMultisigRealm(
-    //   connection.current,
-    //   new PublicKey(programId),
-    //   ProgramVersion.V1,
-    //   form.name,
-    //   60,
-    //   form.teamWallets.map((w) => new PublicKey(w)),
-    //   wallet
-    // )
+    const results = await createMultisigRealm(
+      connection.current,
+      new PublicKey(programId),
+      ProgramVersion.V1,
+      form.name,
+      60,
+      form.teamWallets.map((w) => new PublicKey(w)),
+      wallet
+    )
 
-    // if (results) {
-    //   return results
-    // }
+    if (results) {
+      return results
+    }
 
     notify({
       type: 'error',
