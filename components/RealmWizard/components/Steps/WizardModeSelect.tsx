@@ -10,10 +10,10 @@ const WizardModeSelect: React.FC<{
       <h2 className="text-center">
         Create a decentralized organization (Realm)
       </h2>
-      <div className="grid grid-cols-1 gap-2 text-center">
-        <div className="flex justify-center pointer">
+      <div className="grid grid-cols-1 gap-2 text-center ">
+        <div className="flex justify-center pointer ">
           <div
-            className="border rounded px-5 py-3 w-6/12"
+            className="border rounded px-5 py-3 w-6/12 hover:bg-bkg-3"
             onClick={() => {
               onSelect(RealmWizardMode.BASIC)
             }}
@@ -24,9 +24,9 @@ const WizardModeSelect: React.FC<{
             <p>We&apos;ll generate governance artifacts for you</p>
           </div>
         </div>
-        <div className="flex justify-center">
+        <div className="flex justify-center ">
           <div
-            className="border rounded px-5 py-3 w-6/12"
+            className="border rounded px-5 py-3 w-6/12 hover:bg-bkg-3 opacity-50"
             // onClick={() => {
             //   onSelect(RealmWizardMode.ADVANCED)
             // }}

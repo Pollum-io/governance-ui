@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import RealmWizardController from './controller/RealmWizardController'
-import BN from 'bn.js'
 // import CreateRealmForm from './components/CreateRealmForm'
 import Loading from '@components/Loading'
 import WizardModeSelect from './components/Steps/WizardModeSelect'
@@ -20,18 +19,16 @@ import {
   RealmWizardStep,
   StepDirection,
 } from './interfaces/Realm'
-import { formValidation, isFormValid } from '@utils/formValidation'
-import { CreateFormSchema } from './validators/create-realm-validator'
-import { tryGetMint } from '@utils/tokens'
 import { PublicKey } from '@solana/web3.js'
-import { getMintDecimalAmount } from '@tools/sdk/units'
 import useWalletStore from 'stores/useWalletStore'
-import { registerRealm } from 'actions/registerRealm'
-import { generateGovernanceArtifacts } from '@utils/governance/generate-governance-artifacts'
 import { DEFAULT_GOVERNANCE_PROGRAM_ID } from '@components/instructions/tools'
 import { ProgramVersion } from '@models/registry/constants'
 
 import { createMultisigRealm } from 'actions/createMultisigRealm'
+import { ArrowLeftIcon } from '@heroicons/react/solid'
+import useQueryContext from '@hooks/useQueryContext'
+import Link from 'next/link'
+import router from 'next/router'
 
 enum LoaderMessage {
   CREATING_ARTIFACTS = 'Creating the Realm Artifacts..',
@@ -44,6 +41,8 @@ enum LoaderMessage {
 }
 
 const RealmWizard: React.FC = () => {
+  const { fmtUrlWithCluster } = useQueryContext()
+
   // const wallet = useWalletStore((s) => s.current)
   const { connection, current: wallet } = useWalletStore((s) => s)
   /**
@@ -174,6 +173,14 @@ const RealmWizard: React.FC = () => {
     }
   }
 
+  const handleBackButtonClick = () => {
+    if (ctl && !ctl.isFirstStep()) {
+      setCurrentStep(ctl.getNextStep(currentStep, StepDirection.PREV))
+    } else {
+      router.push(fmtUrlWithCluster('/realms'))
+    }
+  }
+
   /**
    * Binds the current step to the matching component
    */
@@ -198,6 +205,17 @@ const RealmWizard: React.FC = () => {
 
   return (
     <div className="relative">
+      <>
+        <div className="pointer">
+          <a
+            className="flex items-center text-fgd-3 text-sm transition-all hover:text-fgd-1"
+            onClick={handleBackButtonClick}
+          >
+            <ArrowLeftIcon className="h-4 w-4 mr-1 text-primary-light" />
+            Back
+          </a>
+        </div>
+      </>
       {isLoading ? (
         <div className="text-center">
           <Loading />
