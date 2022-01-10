@@ -7,10 +7,12 @@ import {
   FeeCalculator,
   Keypair,
   PublicKey,
+  RpcResponseAndContext,
+  SimulatedTransactionResponse,
   Transaction,
   TransactionInstruction,
 } from '@solana/web3.js'
-import { on } from 'node:events'
+import EventEmitter from 'events'
 
 interface Block {
   blockhash: string
@@ -28,28 +30,32 @@ type EventDispatcherTypes =
   | 'transaction-hash'
   | 'error'
   | 'confirmation'
+  | 'signature'
 
+function promisify(fn: () => void): Promise<any> {
+  return new Promise(fn)
+}
 /**
- * Implements an interface of promise events. Those events creates a chain
- * of events returned by themselves. When a particular action is finished,
- * an `on` event will be called with its particular type and handler.
+ * Implements an interface of promise events. The promise events interface
+ * only filter the EventEmitter methods and doesn't do anything besides defining
+ * types and return states.
  *
  * Example
  *
  * ```ts
  *
  * function coolFunction(): PromiseEvent<string> {
- *  return new PromiseEvent((resolve, reject) => {
- *    resolve(true)
- *  })
+ *  const ee = new EventEmitter();
+ *  someAsyncFn().then(res => ee.emit('my-event', 'Your event was fired!'));
+ *  return ee as PromiseEvent<string>
  * }
  *
- * coolFunction()
+ * coolFunction().on('my-event', console.log);
  *
  * ```
  *
  */
-interface PromiseEvent<T> extends Promise<T> {
+interface PromiseEvent {
   /**
    * Listens to an event type of `sent`. When this action is
    * finished, this event will be triggered as many times as it
@@ -61,7 +67,7 @@ interface PromiseEvent<T> extends Promise<T> {
   on(
     type: 'sent',
     handler: (txnId: string, index: number) => void
-  ): PromiseEvent<T>
+  ): PromiseEvent
   /**
    * Listens to an event type of `transaction-hash`. When this action is
    * finished, this event will be triggered as many times as it
@@ -73,7 +79,7 @@ interface PromiseEvent<T> extends Promise<T> {
   on(
     type: 'transaction-hash',
     handler: (txnId: string, index: number) => void
-  ): PromiseEvent<T>
+  ): PromiseEvent
   /**
    * Listens to an event type of `error`. When this action is
    * finished, this event will be triggered as many times as it
@@ -85,7 +91,7 @@ interface PromiseEvent<T> extends Promise<T> {
   on(
     type: 'error',
     handler: (error: Error, index: number) => void
-  ): PromiseEvent<T>
+  ): PromiseEvent
   /**
    * Listens to an event type of `confirmation`. When this action is
    * finished, this event will be triggered as many times as it
@@ -97,7 +103,7 @@ interface PromiseEvent<T> extends Promise<T> {
   on(
     type: 'confirmation',
     handler: (payload: PublicKey | string) => void
-  ): PromiseEvent<T>
+  ): PromiseEvent
   /**
    * Listens to `EventDispatcherTypes`. When a particular action
    * is finished, one of those events will be triggered as many
@@ -108,7 +114,66 @@ interface PromiseEvent<T> extends Promise<T> {
   on(
     type: EventDispatcherTypes,
     handler: (data: string | Error | PublicKey) => void
-  ): PromiseEvent<T>
+  ): PromiseEvent
+  /**
+   * Listens to the first emmited event type of `sent`. When this action is
+   * finished, this event will be triggered as many times as it
+   * is needed.
+   *
+   * @param type the event type
+   * @param handler callback function to execute when triggered
+   */
+  once(
+    type: 'sent',
+    handler: (txnId: string, index: number) => void
+  ): PromiseEvent
+  /**
+   * Listens to the first emmited event type of `transaction-hash`. When this action is
+   * finished, this event will be triggered as many times as it
+   * is needed.
+   *
+   * @param type the event type
+   * @param handler callback function to execute when triggered
+   */
+  once(
+    type: 'transaction-hash',
+    handler: (txnId: string, index: number) => void
+  ): PromiseEvent
+  /**
+   * Listens to the first emmited event type of `error`. When this action is
+   * finished, this event will be triggered as many times as it
+   * is needed.
+   *
+   * @param type the event type
+   * @param handler callback function to execute when triggered
+   */
+  once(
+    type: 'error',
+    handler: (error: Error, index: number) => void
+  ): PromiseEvent
+  /**
+   * Listens to the first emmited event type of `confirmation`. When this action is
+   * finished, this event will be triggered as many times as it
+   * is needed.
+   *
+   * @param type the event type
+   * @param handler callback function to execute when triggered
+   */
+  once(
+    type: 'confirmation',
+    handler: (payload: PublicKey | string) => void
+  ): PromiseEvent
+  /**
+   * Listens to the first emmited `EventDispatcherTypes`. When a particular action
+   * is finished, one of those events will be triggered as many
+   * times as it is needed.
+   * @param type the event type
+   * @param handler callback function to execute when triggered
+   */
+  once(
+    type: EventDispatcherTypes,
+    handler: (data: string | Error | PublicKey) => void
+  ): PromiseEvent
 }
 
 /**
@@ -168,29 +233,96 @@ interface SendTransactionOptions {
    */
   block?: Block
 }
+
+interface SimulateTransactionProps {
+  connection: Connection
+  transaction: Transaction
+  commitment: Commitment
+}
+interface TransactionResponse {
+  txId: string
+  slot: number
+}
 interface SignedTransactionProps {
-  signedTransaction: Transaction
+  transaction: Transaction
   connection: Connection
   sendingMessage?: string
   sentMessage?: string
   successMessage?: string
   timeout?: number
 }
+
+interface TransactionProviderProps {}
+
+/**
+ * Provides transaction sending methods, including listeners and transaction
+ * progress tracking
+ *
+ * @method simulate
+ * @method send
+ * @method sendSigned
+ * @method requestSignature
+ * @method
+ */
 class TransactionProvider {
   static readonly DEFAULT_TIMEOUT = 30000
+  private isSigned = false
+  constructor({}: TransactionProviderProps) {}
 
-  constructor() {}
+  private getListener(emitter: EventEmitter): PromiseEvent {
+    return emitter as PromiseEvent
+  }
 
-  private simulate() {}
+  /**
+   * Simulates a transaction.
+   * @param params.connection the current connection to the wallet adapter
+   * @param params.transaction the transaction to be simulated
+   * @param params.commitment the commitment level
+   * @returns the simulation results
+   */
+  async simulate({
+    connection,
+    transaction,
+    commitment,
+  }: SimulateTransactionProps): Promise<
+    RpcResponseAndContext<SimulatedTransactionResponse>
+  > {
+    const { blockhash } = await connection.getRecentBlockhash()
+    if (!blockhash) throw new Error('blockhash')
+    transaction.recentBlockhash = blockhash
 
-  private requestSignature() {}
-  private send(options: SendTransactionOptions) {}
+    const signData = transaction.serializeMessage(),
+      // @ts-ignore
+      wireTransaction = transaction._serialize(signData),
+      encodedTransaction = wireTransaction.toString('base64'),
+      config: any = { encoding: 'base64', commitment },
+      args = [encodedTransaction, config]
+    // @ts-ignore
+    const result = await connection._rpcRequest('simulateTransaction', args)
+    if (result.error) {
+      throw new Error(
+        'Failted to simulate transaction: ' + result.error.message
+      )
+    }
+    return result.result
+  }
+
+  requestSignature() {}
+  send(options: SendTransactionOptions) {}
 
   sendSigned({
-    signedTransaction,
+    transaction,
     connection,
     timeout = TransactionProvider.DEFAULT_TIMEOUT,
-  }: SignedTransactionProps) {}
+  }: SignedTransactionProps): PromiseEvent {
+    const ee = new EventEmitter()
+    promisify(async () => {
+      let signedTransaction = transaction
+      if (!this.isSigned) signedTransaction = this.requestSignature() as any
+    })
+
+    return this.getListener(ee)
+  }
 }
 
 export default TransactionProvider
