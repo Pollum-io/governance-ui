@@ -32,7 +32,7 @@ import { AccountInfo } from '@solana/spl-token'
 import { ProgramAccount } from '@project-serum/common'
 import { tryGetAta } from '@utils/validations'
 import { ConnectionContext } from '@utils/connection'
-import { SequenceType } from '@utils/TransactionProvider/model/SequenceType'
+import { SequenceType } from '@utils/TransactionProvider/model'
 import Providers from '@utils/TransactionProvider/class/Providers'
 import PromiseListener from '@utils/TransactionProvider/model/PromiseListener'
 

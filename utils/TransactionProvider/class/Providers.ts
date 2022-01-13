@@ -602,6 +602,10 @@ namespace Providers {
     get timeout(): number {
       return this._timeout
     }
+
+    get length() {
+      return this.transactions.instructions.length
+    }
   }
 }
 export default Providers

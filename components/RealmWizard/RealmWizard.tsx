@@ -191,6 +191,7 @@ const RealmWizard: React.FC = () => {
           form.communityMint ? form.communityMint.account.decimals : undefined,
           getTeamWallets()
         )
+
         listener
           .on('sent', (txId, index, length) => {
             setLoaderMessage(

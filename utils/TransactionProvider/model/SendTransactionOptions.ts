@@ -1,5 +1,5 @@
 import { Commitment } from '@solana/web3.js'
-import { SequenceType } from './SequenceType'
+import { SequenceType } from '.'
 import Block from './Block'
 
 /**
