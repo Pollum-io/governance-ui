@@ -2,27 +2,39 @@ import { PromiseListener } from '@utils/TransactionProvider/model'
 import React, { FunctionComponent, useEffect, useState } from 'react'
 
 interface ProgressBarProps {
-  //array of messages that should be displayed
-  progressMessage?: any
+  /**
+   * array of messages that should be displayed, according to the amount
+   * of transactions that will happen.
+   */
+  messages?: any
   insideProgressBarClassName?: string
   outsideProgressBarClassName?: string
-  textProgressBar?: string
+  textClassName?: string
+  /**
+   * The promise listener that the send transaction method should return.
+   */
   listener?: PromiseListener
+  /**
+   * When the progress is finished, this callback will be triggered
+   */
   onFinish?: () => void
+  /**
+   * If an error happen, this callback will be triggered
+   */
   onError?: (error: Error) => void
-  //index of the message that should be displayed
 }
 
 const TransactionProgressBar: FunctionComponent<ProgressBarProps> = ({
-  textProgressBar = '',
+  textClassName = '',
   outsideProgressBarClassName = '',
   insideProgressBarClassName = '',
-  progressMessage = [],
+  messages = [],
   listener,
   onFinish,
   onError,
 }) => {
   const [step, setStep] = useState<number>(-1)
+
   useEffect(() => {
     if (listener)
       listener
@@ -33,7 +45,7 @@ const TransactionProgressBar: FunctionComponent<ProgressBarProps> = ({
           console.debug(index)
         })
         .on('finish-sending', () => {
-          setStep(progressMessage.length - 1)
+          setStep(messages.length - 1)
           if (onFinish) {
             onFinish()
           }
@@ -56,10 +68,10 @@ const TransactionProgressBar: FunctionComponent<ProgressBarProps> = ({
       }}
     >
       <h3
-        className={textProgressBar}
+        className={textClassName}
         style={{ textAlign: 'center', marginBottom: '1rem' }}
       >
-        {listener && step >= 0 ? progressMessage[step] : 'Starting'}
+        {listener && step >= 0 ? messages[step] : 'Starting...'}
       </h3>
       <div
         className={outsideProgressBarClassName}
@@ -82,7 +94,7 @@ const TransactionProgressBar: FunctionComponent<ProgressBarProps> = ({
             position: 'absolute',
             left: 0,
             background: '#4BB543',
-            width: ((step + 1) / progressMessage.length) * 100 + '%',
+            width: ((step + 1) / messages.length) * 100 + '%',
             transition: 'ease-in-out 100ms',
           }}
         ></span>

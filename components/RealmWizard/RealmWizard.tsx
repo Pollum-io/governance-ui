@@ -1,7 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import RealmWizardController from './controller/RealmWizardController'
-// import CreateRealmForm from './components/CreateRealmForm'
-
 import WizardModeSelect from './components/Steps/WizardModeSelect'
 import { notify } from '@utils/notifications'
 import {
@@ -11,8 +9,6 @@ import {
   BespokeInfo,
   RealmCreated,
 } from './components/Steps'
-
-import { useMemo } from 'react'
 import Button from '@components/Button'
 import TransactionProgressBar from '@components/TransactionProgressBar'
 import {
@@ -34,7 +30,6 @@ import { createMultisigRealm } from 'actions/createMultisigRealm'
 import { ArrowLeftIcon } from '@heroicons/react/solid'
 import useQueryContext from '@hooks/useQueryContext'
 import router from 'next/router'
-import { useEffect } from 'react'
 import { CreateFormSchema } from './validators/createRealmValidator'
 import { formValidation, isFormValid } from '@utils/formValidation'
 import { registerRealm } from 'actions/registerRealm'
@@ -43,6 +38,7 @@ import Switch from '@components/Switch'
 import { BN } from '@project-serum/anchor'
 import BigNumber from 'bignumber.js'
 import { PromiseListener } from '@utils/TransactionProvider/model'
+
 enum LoaderMessage {
   MINTING_COUNCIL_TOKENS = 'Minting the council tokens..',
   MINTING_COMMUNITY_TOKENS = 'Minting the community tokens..',
@@ -70,7 +66,7 @@ const RealmWizard: React.FC = () => {
   const [formErrors, setFormErrors] = useState({})
   const [councilSwitchState, setUseCouncil] = useState(true)
   const [isTestProgramId, setIsTestProgramId] = useState(false)
-  const [listener, setListener] = useState<PromiseListener>()
+  const [sendTxnListener, setSendTxnListener] = useState<PromiseListener>()
   const [isLoading, setIsLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState<RealmWizardStep>(
     RealmWizardStep.SELECT_MODE
@@ -191,7 +187,7 @@ const RealmWizard: React.FC = () => {
           getTeamWallets()
         )
         setRealmAddress(realmAddress.toBase58())
-        setListener(listener)
+        setSendTxnListener(listener)
       } catch (error) {
         notify({
           type: 'error',
@@ -397,14 +393,13 @@ const RealmWizard: React.FC = () => {
       {isLoading ? (
         <div className="text-center">
           <TransactionProgressBar
-            progressMessage={[
+            listener={sendTxnListener}
+            messages={[
               LoaderMessage.MINTING_COMMUNITY_TOKENS,
-
               LoaderMessage.MINTING_COUNCIL_TOKENS,
               LoaderMessage.DEPLOYING_REALM,
               LoaderMessage.FINISHED,
             ]}
-            listener={listener}
             onFinish={() => {
               setTimeout(() => {
                 router.push(fmtUrlWithCluster(`/dao/${realmAddress}`))

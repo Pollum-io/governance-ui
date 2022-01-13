@@ -93,6 +93,15 @@ namespace Providers {
     signers: Keypair[][]
   }
 
+  export interface DispatchableTransactions {
+    transaction: Transaction
+    sent?: boolean
+    failed?: boolean
+    failureReason?: Error
+    txId?: string
+    index?: number
+  }
+
   export class TransactionFailedError extends Error {
     readonly data?: TransactionFailedErrorProps
     readonly code?: number
@@ -181,6 +190,7 @@ namespace Providers {
     private connection: Connection
     private wallet: SignerWalletAdapter
     private transactions: TransactionInstructionsProps
+    private static dispatchable: DispatchableTransactions[]
     private _timeout = SendTransaction.DEFAULT_TIMEOUT
 
     constructor(params: TransactionProviderProps) {
@@ -208,6 +218,16 @@ namespace Providers {
         params.block ??
         (await this.connection.getRecentBlockhash(params.commitment))
       )
+    }
+
+    /**
+     * Verifies if dispatchable transactions are sent
+     * and has no error, and if it doesn't, reset it
+     */
+    private _keepOrResetDispatchable() {
+      if (SendTransaction.dispatchable.every((d) => d.sent && !d.failed)) {
+        SendTransaction.dispatchable.splice(0)
+      }
     }
 
     /**
@@ -395,29 +415,41 @@ namespace Providers {
     private async _batch(params: SendTransactionOptions) {
       if (!this.wallet.publicKey) throw new WalletNotConnectedError()
       if (!params.block) throw new Error("Couldn't get a recent block hash")
-      const signedTxns = await Signer.signAll({
-        instructions: this.transactions
-          .instructions as TransactionInstruction[][],
-        signers: this.transactions.signers as Keypair[][],
-        block: params.block!,
-        wallet: this.wallet,
-      })
+      SendTransaction.dispatchable.push(
+        ...(
+          await Signer.signAll({
+            instructions: this.transactions
+              .instructions as TransactionInstruction[][],
+            signers: this.transactions.signers as Keypair[][],
+            block: params.block!,
+            wallet: this.wallet,
+          })
+        ).map((txn, index) => ({
+          transaction: txn,
+          index,
+        }))
+      )
 
       const pendingTxns: Promise<TransactionResponse>[] = []
-
       const breakEarlyObject = { breakEarly: false }
-      for (let i = 0; i < signedTxns.length; i++) {
-        const signedTxnPromise = this.sendSignedAsync({
-          transaction: signedTxns[i],
-          index: i,
-        })
 
+      for (const dispatchable of SendTransaction.dispatchable) {
+        // If the current transaction was sent and successful, skip it
+        if (dispatchable.sent && !dispatchable.failed) continue
+
+        const { transaction, index } = dispatchable
+        const signedTxnPromise = this.sendSignedAsync({
+          transaction,
+          index,
+        })
         signedTxnPromise.catch((_reason) => {
+          dispatchable.failed = true
+          dispatchable.failureReason = _reason
           // @ts-ignore
-          const error = new TransactionFailedError('Transaction failed.', {
-            signedTxns: signedTxns[i],
-            index: i,
-          })
+          const error = new TransactionFailedError(
+            'Transaction failed.',
+            dispatchable
+          )
           this.notify('error', error)
 
           if (params.sequenceType == SequenceType.StopOnFailure) {
@@ -428,11 +460,12 @@ namespace Providers {
         if (params.sequenceType != SequenceType.Parallel) {
           await signedTxnPromise
           if (breakEarlyObject.breakEarly) {
-            const error = new TransactionFailedError('Transaction Failed', {
-              index: i,
-            })
+            const error = new TransactionFailedError(
+              'Transaction Failed',
+              dispatchable
+            )
             this.notify('error', error)
-            return i // REturn the txn we failed on by index
+            return dispatchable // REturn the txn we failed on by index
           }
         } else {
           pendingTxns.push(signedTxnPromise)
@@ -443,12 +476,13 @@ namespace Providers {
         await Promise.all(pendingTxns)
       }
       this.notify('finish-sending')
+      this._keepOrResetDispatchable()
     }
 
     /**
      * Send a transaction in async mode
      * @param param0.transaction the transaction to send
-     * @returns
+     * @param param0.index (optional) index of the current location. Only used if sending multiple transactions
      */
     async sendSignedAsync({
       transaction,
@@ -529,6 +563,12 @@ namespace Providers {
       }
 
       console.log('Latency', txId, unixTimestamp() - startTime)
+
+      if (index) {
+        SendTransaction.dispatchable[index].txId = txId
+        SendTransaction.dispatchable[index].sent = true
+      }
+
       this.notify('sent', txId, index, this.transactions.instructions.length)
       return { txId, slot }
     }
