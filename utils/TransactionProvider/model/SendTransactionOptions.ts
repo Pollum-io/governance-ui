@@ -1,5 +1,4 @@
-import { SignerWalletAdapter } from '@solana/wallet-adapter-base'
-import { Commitment, Keypair, TransactionInstruction } from '@solana/web3.js'
+import { Commitment } from '@solana/web3.js'
 import { SequenceType } from './SequenceType'
 import Block from './Block'
 

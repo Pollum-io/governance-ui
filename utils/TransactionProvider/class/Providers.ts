@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-namespace */
 import {
   SignerWalletAdapter,
   WalletNotConnectedError,
@@ -392,58 +393,54 @@ namespace Providers {
     private async _batch(params: SendTransactionOptions) {
       if (!this.wallet.publicKey) throw new WalletNotConnectedError()
       if (!params.block) throw new Error("Couldn't get a recent block hash")
-      try {
-        const signedTxns = await Signer.signAll({
-          instructions: this.transactions
-            .instructions as TransactionInstruction[][],
-          signers: this.transactions.signers as Keypair[][],
-          block: params.block!,
-          wallet: this.wallet,
+      const signedTxns = await Signer.signAll({
+        instructions: this.transactions
+          .instructions as TransactionInstruction[][],
+        signers: this.transactions.signers as Keypair[][],
+        block: params.block!,
+        wallet: this.wallet,
+      })
+
+      const pendingTxns: Promise<TransactionResponse>[] = []
+
+      const breakEarlyObject = { breakEarly: false }
+      for (let i = 0; i < signedTxns.length; i++) {
+        const signedTxnPromise = this.sendSignedAsync({
+          transaction: signedTxns[i],
+          index: i,
         })
 
-        const pendingTxns: Promise<TransactionResponse>[] = []
-
-        const breakEarlyObject = { breakEarly: false }
-        for (let i = 0; i < signedTxns.length; i++) {
-          const signedTxnPromise = this.sendSignedAsync({
-            transaction: signedTxns[i],
+        signedTxnPromise.catch((_reason) => {
+          // @ts-ignore
+          const error = new TransactionFailedError('Transaction failed.', {
+            signedTxns: signedTxns[i],
             index: i,
           })
+          this.notify('error', error)
 
-          signedTxnPromise.catch((_reason) => {
-            // @ts-ignore
-            const error = new TransactionFailedError('Transaction failed.', {
-              signedTxns: signedTxns[i],
+          if (params.sequenceType == SequenceType.StopOnFailure) {
+            breakEarlyObject.breakEarly = true
+          }
+        })
+
+        if (params.sequenceType != SequenceType.Parallel) {
+          await signedTxnPromise
+          if (breakEarlyObject.breakEarly) {
+            const error = new TransactionFailedError('Transaction Failed', {
               index: i,
             })
             this.notify('error', error)
-
-            if (params.sequenceType == SequenceType.StopOnFailure) {
-              breakEarlyObject.breakEarly = true
-            }
-          })
-
-          if (params.sequenceType != SequenceType.Parallel) {
-            await signedTxnPromise
-            if (breakEarlyObject.breakEarly) {
-              const error = new TransactionFailedError('Transaction Failed', {
-                index: i,
-              })
-              this.notify('error', error)
-              return i // REturn the txn we failed on by index
-            }
-          } else {
-            pendingTxns.push(signedTxnPromise)
+            return i // REturn the txn we failed on by index
           }
+        } else {
+          pendingTxns.push(signedTxnPromise)
         }
-
-        if (params.sequenceType != SequenceType.Parallel) {
-          await Promise.all(pendingTxns)
-        }
-        this.notify('finish-sending')
-      } catch (error) {
-        throw error
       }
+
+      if (params.sequenceType != SequenceType.Parallel) {
+        await Promise.all(pendingTxns)
+      }
+      this.notify('finish-sending')
     }
 
     /**

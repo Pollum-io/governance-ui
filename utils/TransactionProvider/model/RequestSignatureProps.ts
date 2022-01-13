@@ -1,4 +1,4 @@
-import { Commitment, Connection, TransactionSignature } from '@solana/web3.js'
+import { Commitment, TransactionSignature } from '@solana/web3.js'
 
 interface RequestSignatureProps {
   txId: TransactionSignature
