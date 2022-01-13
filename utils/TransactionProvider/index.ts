@@ -1,3 +1,3 @@
-import TransactionProvider from './class/TransactionProvider'
+import Providers from './class/Providers'
 
-export default { TransactionProvider }
+export { Providers }

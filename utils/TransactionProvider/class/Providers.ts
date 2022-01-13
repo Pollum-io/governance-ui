@@ -27,7 +27,7 @@ import RequestSignatureProps from '../model/RequestSignatureProps'
 import Block from '../model/Block'
 import { SequenceType } from '../model/SequenceType'
 
-namespace Provider {
+namespace Providers {
   export interface TransactionProviderProps {
     /**
      * Currenct connection to a fullnode
@@ -176,7 +176,6 @@ namespace Provider {
   export class SendTransaction {
     static readonly DEFAULT_TIMEOUT = 30000
     private emitter?: PromiseEvent
-    private isSigned = false
     private connection: Connection
     private wallet: SignerWalletAdapter
     private transactions: TransactionInstructionsProps
@@ -605,4 +604,4 @@ namespace Provider {
     }
   }
 }
-export default Provider
+export default Providers

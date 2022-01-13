@@ -2,7 +2,6 @@ import {
   Connection,
   Keypair,
   PublicKey,
-  Transaction,
   TransactionInstruction,
 } from '@solana/web3.js'
 import BN from 'bn.js'
@@ -13,9 +12,7 @@ import {
   VoteWeightSource,
 } from '../models/accounts'
 import { withCreateRealm } from '../models/withCreateRealm'
-import { sendTransaction } from '../utils/send'
 import { ProgramVersion } from '@models/registry/constants'
-import { sendTransactions, WalletSigner } from 'utils/sendTransactions'
 import { withCreateMint } from '@tools/sdk/splToken/withCreateMint'
 import { withCreateAssociatedTokenAccount } from '@tools/sdk/splToken/withCreateAssociatedTokenAccount'
 import { withMintTo } from '@tools/sdk/splToken/withMintTo'
@@ -35,8 +32,8 @@ import { AccountInfo } from '@solana/spl-token'
 import { ProgramAccount } from '@project-serum/common'
 import { tryGetAta } from '@utils/validations'
 import { ConnectionContext } from '@utils/connection'
-import Provider from '@utils/TransactionProvider/class/TransactionProvider'
 import { SequenceType } from '@utils/TransactionProvider/model/SequenceType'
+import Providers from '@utils/TransactionProvider/class/Providers'
 import PromiseListener from '@utils/TransactionProvider/model/PromiseListener'
 
 /* 
@@ -322,7 +319,7 @@ function sendTransactionFactory(
   //   transaction.add(...realmInstructions)
   //   return sendTransaction({ transaction, wallet, connection })
   // }
-  const provider = new Provider.SendTransaction({
+  const provider = new Providers.SendTransaction({
     connection,
     instructionSet: instructions,
     signersSet: signerSets,
