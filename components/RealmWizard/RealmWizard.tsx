@@ -42,7 +42,6 @@ import { BN } from '@project-serum/anchor'
 import BigNumber from 'bignumber.js'
 
 enum LoaderMessage {
-  CREATING_ARTIFACTS = 'Creating the DAO artifacts..',
   MINTING_COUNCIL_TOKENS = 'Minting the council tokens..',
   MINTING_COMMUNITY_TOKENS = 'Minting the community tokens..',
   DEPLOYING_REALM = 'Building your DAO...',
@@ -75,7 +74,9 @@ const RealmWizard: React.FC = () => {
     RealmWizardStep.SELECT_MODE
   )
   const [realmAddress] = useState('')
-  const [loaderMessage] = useState<LoaderMessage>(LoaderMessage.DEPLOYING_REALM)
+  const [loaderMessage, setLoaderMessage] = useState<LoaderMessage>(
+    LoaderMessage.DEPLOYING_REALM
+  )
 
   /**
    * Handles and set the form data
@@ -170,7 +171,7 @@ const RealmWizard: React.FC = () => {
     )
     if (isValid) {
       try {
-        const realmAddress = await registerRealm(
+        const { realmAddress, listener } = await registerRealm(
           {
             connection,
             wallet: wallet!,
@@ -190,7 +191,30 @@ const RealmWizard: React.FC = () => {
           form.communityMint ? form.communityMint.account.decimals : undefined,
           getTeamWallets()
         )
-        router.push(fmtUrlWithCluster(`/dao/${realmAddress.toBase58()}`))
+        listener
+          .on('sent', (txId, index, length) => {
+            setLoaderMessage(
+              index === 0
+                ? LoaderMessage.MINTING_COMMUNITY_TOKENS
+                : index === 1
+                ? LoaderMessage.MINTING_COUNCIL_TOKENS
+                : LoaderMessage.DEPLOYING_REALM
+            )
+            console.debug('Txn sent', txId, index, length)
+          })
+          .on('finish-sending', () => {
+            setLoaderMessage(LoaderMessage.FINISHED)
+            setTimeout(() => {
+              router.push(fmtUrlWithCluster(`/dao/${realmAddress.toBase58()}`))
+            }, 1000)
+          })
+          .on('error', (error) => {
+            notify({
+              type: 'error',
+              message: error.message,
+            })
+            setIsLoading(false)
+          })
       } catch (error) {
         notify({
           type: 'error',
@@ -201,7 +225,6 @@ const RealmWizard: React.FC = () => {
       console.debug(validationErrors)
       setFormErrors(validationErrors)
     }
-    setIsLoading(false)
   }
 
   /**
@@ -270,8 +293,6 @@ const RealmWizard: React.FC = () => {
           type: 'error',
           message: err.message,
         })
-      } finally {
-        setIsLoading(false)
       }
     }
   }

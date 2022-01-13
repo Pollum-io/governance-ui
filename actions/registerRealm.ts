@@ -15,11 +15,7 @@ import {
 import { withCreateRealm } from '../models/withCreateRealm'
 import { sendTransaction } from '../utils/send'
 import { ProgramVersion } from '@models/registry/constants'
-import {
-  sendTransactions,
-  SequenceType,
-  WalletSigner,
-} from 'utils/sendTransactions'
+import { sendTransactions, WalletSigner } from 'utils/sendTransactions'
 import { withCreateMint } from '@tools/sdk/splToken/withCreateMint'
 import { withCreateAssociatedTokenAccount } from '@tools/sdk/splToken/withCreateAssociatedTokenAccount'
 import { withMintTo } from '@tools/sdk/splToken/withMintTo'
@@ -39,6 +35,9 @@ import { AccountInfo } from '@solana/spl-token'
 import { ProgramAccount } from '@project-serum/common'
 import { tryGetAta } from '@utils/validations'
 import { ConnectionContext } from '@utils/connection'
+import Provider from '@utils/TransactionProvider/class/TransactionProvider'
+import { SequenceType } from '@utils/TransactionProvider/model/SequenceType'
+import PromiseListener from '@utils/TransactionProvider/model/PromiseListener'
 
 /* 
   TODO: Check if the abstractions present here can be moved to a 
@@ -287,7 +286,7 @@ async function prepareGovernanceInstructions(
  * @returns a promise to be executed.
  */
 function sendTransactionFactory(
-  wallet: WalletSigner,
+  wallet: SignerWalletAdapter,
   connection: Connection,
   councilMembersChunks: TransactionInstruction[][],
   councilSignersChunks: Keypair[][],
@@ -310,19 +309,30 @@ function sendTransactionFactory(
     signerSets.unshift(communityMintSigners)
   }
 
-  if (instructions.length > 1) {
-    return sendTransactions(
-      connection,
-      wallet,
-      instructions,
-      signerSets,
-      SequenceType.Sequential
-    )
-  } else {
-    const transaction = new Transaction()
-    transaction.add(...realmInstructions)
-    return sendTransaction({ transaction, wallet, connection })
-  }
+  // if (instructions.length > 1) {
+  //   return sendTransactions(
+  //     connection,
+  //     wallet,
+  //     instructions,
+  //     signerSets,
+  //     SequenceType.Sequential
+  //   )
+  // } else {
+  //   const transaction = new Transaction()
+  //   transaction.add(...realmInstructions)
+  //   return sendTransaction({ transaction, wallet, connection })
+  // }
+  const provider = new Provider.SendTransaction({
+    connection,
+    instructionSet: instructions,
+    signersSet: signerSets,
+    wallet,
+  })
+
+  return provider.send({
+    commitment: 'singleGossip',
+    sequenceType: SequenceType.Sequential,
+  })
 }
 
 /**
@@ -361,7 +371,10 @@ export async function registerRealm(
   transferAuthority = true,
   communityMintTokenDecimals?: number,
   councilWalletPks?: PublicKey[]
-): Promise<PublicKey> {
+): Promise<{
+  listener: PromiseListener
+  realmAddress: PublicKey
+}> {
   if (!wallet) throw WalletConnectionError
   console.debug('starting register realm')
 
@@ -475,11 +488,8 @@ export async function registerRealm(
     communityMintSigners
   )
   console.debug('sending transaction')
-  await txnToSend
-  console.debug('transaction sent')
-  console.debug({
-    communityMintPk,
-    councilMintPk,
-  })
-  return realmAddress
+  return {
+    listener: txnToSend,
+    realmAddress,
+  }
 }
