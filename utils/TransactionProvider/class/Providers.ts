@@ -14,19 +14,20 @@ import {
   TransactionInstruction,
   TransactionSignature,
 } from '@solana/web3.js'
+import { sleep, unixTimestamp } from '../lib'
 import PromiseEvent from './PromiseEvent'
-import SendTransactionOptions from '../model/SendTransactionOptions'
-import SignedTransactionProps, {
+import {
+  SequenceType,
+  RequestSignatureProps,
+  Block,
+  PromiseListener,
+  EventDispatcherTypes,
   SignedTransaction,
-} from '../model/SignedTransactionProps'
-import SimulateTransactionProps from '../model/SimulateTransactionProps'
-import TransactionResponse from '../model/TransactionResponse'
-import PromiseListener, { EventDispatcherTypes } from '../model/PromiseListener'
-import unixTimestamp from '../lib/unix-timestamp'
-import sleep from '../lib/sleep'
-import RequestSignatureProps from '../model/RequestSignatureProps'
-import Block from '../model/Block'
-import { SequenceType } from '../model/SequenceType'
+  SignedTransactionProps,
+  SendTransactionOptions,
+  SimulateTransactionProps,
+  TransactionResponse,
+} from '../model'
 
 namespace Providers {
   export interface TransactionProviderProps {
@@ -270,6 +271,7 @@ namespace Providers {
       commitment = 'recent',
       queryStatus = false,
     }: RequestSignatureProps) {
+      // TODO: This code must be refactored
       let done = false
       let status: SignatureStatus | null = {
         slot: 0,
@@ -452,6 +454,7 @@ namespace Providers {
       transaction,
       index,
     }: SignedTransactionProps): Promise<TransactionResponse> {
+      // TODO: This code must be refactored
       const rawTransaction = transaction.serialize()
       const startTime = unixTimestamp()
       let slot = 0

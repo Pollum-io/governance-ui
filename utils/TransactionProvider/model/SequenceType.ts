@@ -1,5 +1,7 @@
-export enum SequenceType {
+enum SequenceType {
   Sequential,
   Parallel,
   StopOnFailure,
 }
+
+export default SequenceType

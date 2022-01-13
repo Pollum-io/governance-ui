@@ -1,7 +1,6 @@
 import EventEmitter from 'events'
-import promisify from '../lib/promisify'
-import unixTimestamp from '../lib/unix-timestamp'
-import PromiseListener, { EventDispatcherTypes } from '../model/PromiseListener'
+import { promisify, unixTimestamp } from '../lib'
+import { PromiseListener, EventDispatcherTypes } from '../model'
 
 /**
  * Represents the `EventEmitter` class
