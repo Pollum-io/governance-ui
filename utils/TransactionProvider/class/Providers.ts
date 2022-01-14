@@ -32,6 +32,12 @@ import {
 namespace Providers {
   export interface TransactionProviderProps {
     /**
+     * The name for the operation as any string. This will distinguish
+     * which transaction is being executed and if something breaks, it will
+     * be used to identify the failed transactions.
+     */
+    transactionName: string
+    /**
      * Currenct connection to a fullnode
      */
     connection: Connection
@@ -93,13 +99,17 @@ namespace Providers {
     signers: Keypair[][]
   }
 
-  export interface DispatchableTransaction {
+  export interface SignableTransaction {
     transaction: Transaction
     sent?: boolean
     failed?: boolean
     failureReason?: Error
     txId?: string
     index?: number
+  }
+
+  export interface DispatchableTransaction {
+    [key: string]: SignableTransaction[]
   }
 
   export class TransactionFailedError extends Error {
@@ -190,19 +200,20 @@ namespace Providers {
     private wallet: SignerWalletAdapter
     private transactions: TransactionInstructionsProps
     private _timeout = SendTransaction.DEFAULT_TIMEOUT
-
+    private _transactionName: string
     static readonly DEFAULT_TIMEOUT = 30000
-    private static dispatchable: DispatchableTransaction[]
+    private static dispatchable: DispatchableTransaction
 
     constructor(params: TransactionProviderProps) {
-      console.debug('here', params)
       this.connection = params.connection
       this.wallet = params.wallet
       this.timeout = params.timeout
+      this._transactionName = params.transactionName
       this.transactions = {
         instructions: params.instructionSet,
         signers: params.signersSet,
       }
+      this.createDispatchable()
       this.setIsSingleTxn()
     }
 
@@ -222,11 +233,34 @@ namespace Providers {
     }
 
     /**
+     * Gets the right dispatchable array of this instance.
+     */
+    private getDispatchable(): SignableTransaction[] {
+      if (this.transactionName) {
+        return SendTransaction.dispatchable[this.transactionName] ?? []
+      }
+      return []
+    }
+
+    private createDispatchable() {
+      if (!SendTransaction.dispatchable[this.transactionName]) {
+        SendTransaction.dispatchable[this.transactionName] = []
+      } else
+        throw new Error(
+          `SendTransaction::Transaction set with name ${this.transactionName} already exists.`
+        )
+    }
+
+    /**
      * Verifies if dispatchable transactions are sent
      * and has no error, and if it doesn't, reset it
      */
     private _keepOrResetDispatchable() {
-      if (SendTransaction.dispatchable.every((d) => d.sent && !d.failed)) {
+      if (
+        SendTransaction.dispatchable[this.transactionName].every(
+          (d) => d.sent && !d.failed
+        )
+      ) {
         this.reset()
       }
     }
@@ -416,7 +450,7 @@ namespace Providers {
     private async _batch(params: SendTransactionOptions) {
       if (!this.wallet.publicKey) throw new WalletNotConnectedError()
       if (!params.block) throw new Error("Couldn't get a recent block hash")
-      SendTransaction.dispatchable.push(
+      SendTransaction.dispatchable[this.transactionName].push(
         ...(
           await Signer.signAll({
             instructions: this.transactions
@@ -434,7 +468,7 @@ namespace Providers {
       const pendingTxns: Promise<TransactionResponse>[] = []
       const breakEarlyObject = { breakEarly: false }
 
-      for (const dispatchable of SendTransaction.dispatchable) {
+      for (const dispatchable of this.getDispatchable()) {
         // If the current transaction was sent and successful, skip it
         if (dispatchable.sent && !dispatchable.failed) continue
 
@@ -566,8 +600,8 @@ namespace Providers {
       console.log('Latency', txId, unixTimestamp() - startTime)
 
       if (index) {
-        SendTransaction.dispatchable[index].txId = txId
-        SendTransaction.dispatchable[index].sent = true
+        SendTransaction.dispatchable[this.transactionName][index].txId = txId
+        SendTransaction.dispatchable[this.transactionName][index].sent = true
       }
 
       this.notify('sent', txId, index, this.transactions.instructions.length)
@@ -628,14 +662,14 @@ namespace Providers {
      * Resets the dispatchable transactions to the base state
      */
     reset() {
-      SendTransaction.dispatchable.splice(0)
+      SendTransaction.dispatchable[this.transactionName].splice(0)
     }
 
     /**
      * Resets the dispatchable transactions to the base state
      */
     static reset() {
-      SendTransaction.dispatchable.splice(0)
+      SendTransaction.dispatchable = {}
     }
 
     notify(...args: PromiseEmitterArgs): boolean {
@@ -652,6 +686,13 @@ namespace Providers {
 
     get timeout(): number {
       return this._timeout
+    }
+    set transactionName(value: string) {
+      if (value) this._transactionName = value
+    }
+
+    get transactionName(): string {
+      return this._transactionName
     }
 
     get length() {
