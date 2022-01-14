@@ -1,9 +1,4 @@
-import {
-  Connection,
-  Keypair,
-  PublicKey,
-  TransactionInstruction,
-} from '@solana/web3.js'
+import { Keypair, PublicKey, TransactionInstruction } from '@solana/web3.js'
 import BN from 'bn.js'
 import {
   GovernanceConfig,
@@ -32,9 +27,8 @@ import { AccountInfo } from '@solana/spl-token'
 import { ProgramAccount } from '@project-serum/common'
 import { tryGetAta } from '@utils/validations'
 import { ConnectionContext } from '@utils/connection'
-import { SequenceType } from '@utils/TransactionProvider/model'
+import { SignedInstructions } from '@utils/TransactionProvider/model'
 import Providers from '@utils/TransactionProvider/class/Providers'
-import PromiseListener from '@utils/TransactionProvider/model/PromiseListener'
 
 /* 
   TODO: Check if the abstractions present here can be moved to a 
@@ -123,7 +117,6 @@ async function prepareMintInstructions(
 
         // Mint 1 token to each owner
         if (shouldMint && ataPk) {
-          console.debug('will mint to ', { ataPk })
           await withMintTo(mintInstructions, _mintPk, ataPk, walletPubkey, 1)
         }
 
@@ -272,25 +265,20 @@ async function prepareGovernanceInstructions(
 }
 
 /**
- * Factories the send transaction method according to the parameters
- * @param wallet the payeer
- * @param connection current connection
+ * Factories the send transaction instructions and signer sets
  * @param councilMembersChunks Chunks of council members instructions
  * @param councilSignersChunks Chunks of council signers
  * @param communityMintInstructions Community mint instructions
  * @param communityMintSigners Community mint signers
  * @param realmInstructions Realm instructions
- * @returns a promise to be executed.
  */
-function sendTransactionFactory(
-  wallet: SignerWalletAdapter,
-  connection: Connection,
+function prepareTransactionInstructions(
   councilMembersChunks: TransactionInstruction[][],
   councilSignersChunks: Keypair[][],
   realmInstructions: TransactionInstruction[],
   communityMintInstructions?: TransactionInstruction[],
   communityMintSigners?: Keypair[]
-) {
+): SignedInstructions {
   console.debug('factoring sendtransaction')
 
   const instructions: TransactionInstruction[][] = [realmInstructions]
@@ -319,18 +307,11 @@ function sendTransactionFactory(
   //   transaction.add(...realmInstructions)
   //   return sendTransaction({ transaction, wallet, connection })
   // }
-  const provider = new Providers.SendTransaction({
-    transactionName: 'CreateBespokeRealm',
-    connection,
-    instructionSet: instructions,
-    signersSet: signerSets,
-    wallet,
-  })
 
-  return provider.send({
-    commitment: 'singleGossip',
-    sequenceType: SequenceType.Sequential,
-  })
+  return {
+    instructions,
+    signerSets,
+  }
 }
 
 /**
@@ -355,6 +336,8 @@ function sendTransactionFactory(
  * @param transferAuthority if set to true, will transfer the authority of the community token to the realm
  * @param communityMintTokenDecimals Token amount decimals
  * @param councilWalletPks Array of wallets of the council/team
+ *
+ * @returns the send transaction promise to be executed.
  */
 export async function registerRealm(
   { connection, wallet, walletPubkey }: RegisterRealmRpc,
@@ -370,8 +353,8 @@ export async function registerRealm(
   communityMintTokenDecimals?: number,
   councilWalletPks?: PublicKey[]
 ): Promise<{
-  listener: PromiseListener
   realmAddress: PublicKey
+  preparedTransaction: Providers.TransactionProviderProps
 }> {
   if (!wallet) throw WalletConnectionError
   console.debug('starting register realm')
@@ -476,9 +459,7 @@ export async function registerRealm(
     )
   }
 
-  const txnToSend = sendTransactionFactory(
-    wallet,
-    connection.current,
+  const transactions = prepareTransactionInstructions(
     councilMembersChunks,
     councilSignersChunks,
     realmInstructions,
@@ -486,8 +467,15 @@ export async function registerRealm(
     communityMintSigners
   )
   console.debug('sending transaction')
+
   return {
-    listener: txnToSend,
     realmAddress,
+    preparedTransaction: {
+      instructionSet: transactions.instructions,
+      signersSet: transactions.signerSets,
+      connection: connection.current,
+      transactionName: 'Create Bespoke Realm',
+      wallet,
+    },
   }
 }

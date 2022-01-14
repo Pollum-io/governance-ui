@@ -10,7 +10,7 @@ import {
   RealmCreated,
 } from './components/Steps'
 import Button from '@components/Button'
-import TransactionProgressBar from '@components/TransactionProgressBar'
+import SendTransactionWidget from '@utils/TransactionProvider/ui/SendTransactionWidget'
 import {
   RealmArtifacts,
   RealmWizardMode,
@@ -37,7 +37,8 @@ import { MintMaxVoteWeightSource } from '@models/accounts'
 import Switch from '@components/Switch'
 import { BN } from '@project-serum/anchor'
 import BigNumber from 'bignumber.js'
-import { PromiseListener } from '@utils/TransactionProvider/model'
+import { Providers } from '@utils/TransactionProvider'
+import { SignedInstructions } from '@utils/TransactionProvider/model'
 
 enum LoaderMessage {
   MINTING_COUNCIL_TOKENS = 'Minting the council tokens..',
@@ -66,7 +67,10 @@ const RealmWizard: React.FC = () => {
   const [formErrors, setFormErrors] = useState({})
   const [councilSwitchState, setUseCouncil] = useState(true)
   const [isTestProgramId, setIsTestProgramId] = useState(false)
-  const [sendTxnListener, setSendTxnListener] = useState<PromiseListener>()
+  const [
+    transactions,
+    setTransactions,
+  ] = useState<Providers.TransactionProviderProps>()
   const [isLoading, setIsLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState<RealmWizardStep>(
     RealmWizardStep.SELECT_MODE
@@ -166,7 +170,7 @@ const RealmWizard: React.FC = () => {
     )
     if (isValid) {
       try {
-        const { realmAddress, listener } = await registerRealm(
+        const { preparedTransaction, realmAddress } = await registerRealm(
           {
             connection,
             wallet: wallet!,
@@ -187,7 +191,7 @@ const RealmWizard: React.FC = () => {
           getTeamWallets()
         )
         setRealmAddress(realmAddress.toBase58())
-        setSendTxnListener(listener)
+        setTransactions(preparedTransaction)
       } catch (error) {
         notify({
           type: 'error',
@@ -310,6 +314,10 @@ const RealmWizard: React.FC = () => {
     return false
   }
 
+  const redirectToRealmPage = () => {
+    router.push(fmtUrlWithCluster(`/dao/${realmAddress}`))
+  }
+
   /**
    * Binds the current step to the matching component
    */
@@ -392,18 +400,18 @@ const RealmWizard: React.FC = () => {
 
       {isLoading ? (
         <div className="text-center">
-          <TransactionProgressBar
-            listener={sendTxnListener}
-            messages={[
-              LoaderMessage.MINTING_COMMUNITY_TOKENS,
-              LoaderMessage.MINTING_COUNCIL_TOKENS,
-              LoaderMessage.DEPLOYING_REALM,
-              LoaderMessage.FINISHED,
-            ]}
-            onFinish={() => {
-              setTimeout(() => {
-                router.push(fmtUrlWithCluster(`/dao/${realmAddress}`))
-              }, 1000)
+          <SendTransactionWidget
+            transactions={transactions}
+            onFinish={redirectToRealmPage}
+            onError={(error) => {
+              notify({
+                type: 'error',
+                message: error.message,
+              })
+              setIsLoading(false)
+            }}
+            onFinally={() => {
+              setTransactions(undefined)
             }}
           />
         </div>

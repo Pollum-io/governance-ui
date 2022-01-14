@@ -202,7 +202,7 @@ namespace Providers {
     private _timeout = SendTransaction.DEFAULT_TIMEOUT
     private _transactionName: string
     static readonly DEFAULT_TIMEOUT = 30000
-    private static dispatchable: DispatchableTransaction
+    private static dispatchable: DispatchableTransaction = {}
 
     constructor(params: TransactionProviderProps) {
       this.connection = params.connection
@@ -245,10 +245,11 @@ namespace Providers {
     private createDispatchable() {
       if (!SendTransaction.dispatchable[this.transactionName]) {
         SendTransaction.dispatchable[this.transactionName] = []
-      } else
-        throw new Error(
-          `SendTransaction::Transaction set with name ${this.transactionName} already exists.`
-        )
+      }
+      // else
+      //   throw new Error(
+      //     `SendTransaction::Transaction set with name ${this.transactionName} already exists.`
+      //   )
     }
 
     /**
@@ -645,7 +646,12 @@ namespace Providers {
      * to do it async, try `sendAsync`.
      * @param params
      */
-    send(params: SendTransactionOptions): PromiseListener {
+    send(
+      params: SendTransactionOptions = {
+        commitment: 'singleGossip',
+        sequenceType: SequenceType.Sequential,
+      }
+    ): PromiseListener {
       return PromiseEvent.create((emitter) => {
         this.emitter = emitter
         this.sendAsync(params)
@@ -695,6 +701,9 @@ namespace Providers {
       return this._transactionName
     }
 
+    /**
+     * The amount of transactions that will be sent to the network.
+     */
     get length() {
       return this.transactions.instructions.length
     }

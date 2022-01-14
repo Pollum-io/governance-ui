@@ -50,7 +50,7 @@ interface PromiseListener {
    */
   on(
     type: 'error',
-    handler: (error: Error, index: number) => void
+    handler: (error: Error, index?: number) => void
   ): PromiseListener
   /**
    * Listens to an event type of `confirmation`. When this action is
@@ -130,7 +130,7 @@ interface PromiseListener {
    */
   once(
     type: 'error',
-    handler: (error: Error, index: number) => void
+    handler: (error: Error, index?: number) => void
   ): PromiseListener
   /**
    * Listens to the first emmited event type of `confirmation`. When this action is

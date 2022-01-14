@@ -9,7 +9,7 @@ import TransactionResponse from './TransactionResponse'
 import Block from './Block'
 import { SignedTransaction } from './SignedTransactionProps'
 import PromiseEmitterArgs from './PromiseEmitterArgs'
-
+import { SignedInstructions } from './SignedInstructions'
 export {
   PromiseEmitterArgs,
   PromiseListener,
@@ -19,6 +19,7 @@ export {
   SequenceType,
   SignedTransaction,
   SignedTransactionProps,
+  SignedInstructions,
   SimulateTransactionProps,
   TransactionResponse,
   Block,
