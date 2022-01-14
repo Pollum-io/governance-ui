@@ -320,6 +320,7 @@ function sendTransactionFactory(
   //   return sendTransaction({ transaction, wallet, connection })
   // }
   const provider = new Providers.SendTransaction({
+    transactionName: 'CreateBespokeRealm',
     connection,
     instructionSet: instructions,
     signersSet: signerSets,

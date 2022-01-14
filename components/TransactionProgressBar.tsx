@@ -39,7 +39,7 @@ const TransactionProgressBar: FunctionComponent<ProgressBarProps> = ({
     if (listener)
       listener
         .on('sent', (txId, index) => {
-          setStep(index)
+          if (index) setStep(index)
 
           console.log(index)
           console.debug(index)
