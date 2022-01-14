@@ -8,8 +8,10 @@ import SimulateTransactionProps from './SimulateTransactionProps'
 import TransactionResponse from './TransactionResponse'
 import Block from './Block'
 import { SignedTransaction } from './SignedTransactionProps'
+import PromiseEmitterArgs from './PromiseEmitterArgs'
 
 export {
+  PromiseEmitterArgs,
   PromiseListener,
   EventDispatcherTypes,
   RequestSignatureProps,

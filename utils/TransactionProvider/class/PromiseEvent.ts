@@ -27,10 +27,10 @@ class PromiseEvent extends EventEmitter {
   }
 
   /**
-   * Checks if any listener is called in this period of time. Default is 30s
+   * Checks if any listener is called in this period of time. Default is 60s
    * @param inactivityTime time to remove listeners if not called in this period
    */
-  private _checkStandbyListeners(inactivityTime = 30000) {
+  private _checkStandbyListeners(inactivityTime = 60000) {
     const interval = setInterval(() => {
       if (
         this._lastEmitterCall &&
@@ -71,10 +71,10 @@ class PromiseEvent extends EventEmitter {
   }
 
   /**
-   * @param event defaulted to `EventDispatcherTypes`
+   * @param event event name
    * @param args arguments to be caught by the listener
    */
-  emit(event: EventDispatcherTypes, ...args: any) {
+  emit(event: string, ...args: any) {
     this._lastEmitterCall = unixTimestamp()
     return super.emit(event, ...args)
   }

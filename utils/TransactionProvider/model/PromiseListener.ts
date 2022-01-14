@@ -26,7 +26,7 @@ interface PromiseListener {
    */
   on(
     type: 'sent',
-    handler: (txnId: string, index: number, length?: number) => void
+    handler: (txnId: string, index?: number, length?: number) => void
   ): PromiseListener
   /**
    * Listens to an event type of `transaction-hash`. When this action is
@@ -106,7 +106,7 @@ interface PromiseListener {
    */
   once(
     type: 'sent',
-    handler: (txnId: string, index: number) => void
+    handler: (txnId: string, index: number | undefined, length: number) => void
   ): PromiseListener
   /**
    * Listens to the first emmited event type of `transaction-hash`. When this action is

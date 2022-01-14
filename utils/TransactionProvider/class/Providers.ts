@@ -21,12 +21,12 @@ import {
   RequestSignatureProps,
   Block,
   PromiseListener,
-  EventDispatcherTypes,
   SignedTransaction,
   SignedTransactionProps,
   SendTransactionOptions,
   SimulateTransactionProps,
   TransactionResponse,
+  PromiseEmitterArgs,
 } from '../model'
 
 namespace Providers {
@@ -93,7 +93,7 @@ namespace Providers {
     signers: Keypair[][]
   }
 
-  export interface DispatchableTransactions {
+  export interface DispatchableTransaction {
     transaction: Transaction
     sent?: boolean
     failed?: boolean
@@ -185,13 +185,14 @@ namespace Providers {
    * @method requestSignature
    */
   export class SendTransaction {
-    static readonly DEFAULT_TIMEOUT = 30000
     private emitter?: PromiseEvent
     private connection: Connection
     private wallet: SignerWalletAdapter
     private transactions: TransactionInstructionsProps
-    private static dispatchable: DispatchableTransactions[]
     private _timeout = SendTransaction.DEFAULT_TIMEOUT
+
+    static readonly DEFAULT_TIMEOUT = 30000
+    private static dispatchable: DispatchableTransaction[]
 
     constructor(params: TransactionProviderProps) {
       console.debug('here', params)
@@ -226,7 +227,7 @@ namespace Providers {
      */
     private _keepOrResetDispatchable() {
       if (SendTransaction.dispatchable.every((d) => d.sent && !d.failed)) {
-        SendTransaction.dispatchable.splice(0)
+        this.reset()
       }
     }
 
@@ -319,11 +320,11 @@ namespace Providers {
                   confirmations: 0,
                 }
                 if (result.err) {
-                  this.notify('error', result.err)
+                  this.notify('error', result.err as Error)
                   console.log('Rejected via websocket', result.err)
                   reject(result.err)
                 } else {
-                  this.notify('signature', txId, status.slot)
+                  this.notify('signature')
                   console.log('Resolved via websocket', result)
                   resolve(result)
                 }
@@ -624,12 +625,22 @@ namespace Providers {
     }
 
     /**
-     * Emits an event if the emitter is set
-     * @param event
-     * @param args
+     * Resets the dispatchable transactions to the base state
      */
-    private notify(event: EventDispatcherTypes, ...args: any): boolean {
+    reset() {
+      SendTransaction.dispatchable.splice(0)
+    }
+
+    /**
+     * Resets the dispatchable transactions to the base state
+     */
+    static reset() {
+      SendTransaction.dispatchable.splice(0)
+    }
+
+    notify(...args: PromiseEmitterArgs): boolean {
       if (this.emitter) {
+        const event = args.shift() as string
         return this.emitter.emit(event, ...args)
       }
       return false
