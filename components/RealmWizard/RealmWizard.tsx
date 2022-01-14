@@ -38,16 +38,15 @@ import Switch from '@components/Switch'
 import { BN } from '@project-serum/anchor'
 import BigNumber from 'bignumber.js'
 import { Providers } from '@utils/TransactionProvider'
-import { SignedInstructions } from '@utils/TransactionProvider/model'
 
-enum LoaderMessage {
-  MINTING_COUNCIL_TOKENS = 'Minting the council tokens..',
-  MINTING_COMMUNITY_TOKENS = 'Minting the community tokens..',
-  DEPLOYING_REALM = 'Building your DAO...',
-  COMPLETING_REALM = 'Finishing the DAO buildings..',
-  FINISHED = "DAO successfully created. Redirecting to the DAO's page",
-  ERROR = 'We found an error while creating your DAO :/',
-}
+// enum LoaderMessage {
+//   MINTING_COUNCIL_TOKENS = 'Minting the council tokens..',
+//   MINTING_COMMUNITY_TOKENS = 'Minting the community tokens..',
+//   DEPLOYING_REALM = 'Building your DAO...',
+//   COMPLETING_REALM = 'Finishing the DAO buildings..',
+//   FINISHED = "DAO successfully created. Redirecting to the DAO's page",
+//   ERROR = 'We found an error while creating your DAO :/',
+// }
 
 // TODO: split this component
 
