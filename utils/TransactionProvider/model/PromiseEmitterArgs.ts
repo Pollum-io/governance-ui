@@ -1,5 +1,4 @@
 import { PublicKey } from '@solana/web3.js'
-import { number } from 'superstruct'
 import { EventDispatcherTypes } from './PromiseListener'
 
 /**
